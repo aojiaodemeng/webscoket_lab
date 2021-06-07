@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  </head>
+  <body>
+    <div id="app">
+      <ul>
+        <li v-for="(item,index) in lists" :key="'message'+index">{{item}}</li>
+      </ul>
+      <div class="ctrl">
+        <input type="text" id="msg" v-model="message" />
+        <button type="button" id="send" @click="send()">按钮</button>
+      </div>
+    </div>
+    <!-- 输入框 -->
+
+    <script>
+      var app = new Vue({
+        el: "#app",
+        data: {
+          message: "",
+          lists: [],
+          ws: {},
+        },
+        mounted() {
+          this.ws = new WebSocket("ws://127.0.0.1:8880");
+          this.ws.onopen = this.onOpen;
+          this.ws.onmessage = this.onMessage;
+          this.ws.onclose = this.onClose;
+          this.ws.onerror = this.onError;
+        },
+        methods: {
+          onOpen: function () {
+            console.log("open:" + this.ws.readyState);
+          },
+          onMessage: function (event) {
+            this.lists.push(event.data);
+          },
+          onClose: function () {
+            console.log("close:", this.ws.readyState);
+            console.log("已关闭websocket");
+          },
+          onError: function () {
+            console.log("error:" + this.ws.readyState);
+            console.log("websocket连接失败");
+          },
+          send: function () {
+            this.ws.send(this.message);
+            this.message = "";
+          },
+        },
+      });
+      //   var ws = new WebSocket("ws://127.0.0.1:8880");
+      //   ws.onopen = function () {
+      //     console.log("open:" + ws.readyState);
+      //   };
+      //   ws.onmessage = function (event) {
+      //     console.log(event.data);
+      //   };
+      //   // 当连接主动断开的时候触发close事件
+      //   ws.onclose = function () {
+      //     console.log("close:" + ws.readyState);
+      //     console.log("已关闭ws");
+      //   };
+      //   // 当连接失败时，触发error事件
+      //   ws.onerror = function () {
+      //     console.log("error:" + ws.readyState);
+      //     console.log("websocket连接失败");
+      //   };
+      // 发送消息
+      //   document.getElementById("send").addEventListener("click", function () {
+      //     var inputValue = document.getElementById("msg").value;
+      //     ws.send(inputValue);
+      //     document.getElementById("msg").value = "";
+      //   });
+      //   // 关闭链接
+      //   document.getElementById("close").addEventListener("click", function () {
+      //     ws.close();
+      //   });
+    </script>
+  </body>
+</html>
