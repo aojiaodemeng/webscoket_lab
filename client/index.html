@@ -9,12 +9,18 @@
   </head>
   <body>
     <div id="app">
-      <ul>
-        <li v-for="(item,index) in lists" :key="'message'+index">{{item}}</li>
-      </ul>
-      <div class="ctrl">
-        <input type="text" id="msg" v-model="message" />
-        <button type="button" id="send" @click="send()">按钮</button>
+      <div v-if="isShow">
+        <input type="text" v-model="name" />
+        <button type="button" @click="enter()">进入聊天室</button>
+      </div>
+      <div v-else>
+        <ul>
+          <li v-for="(item,index) in lists" :key="'message'+index">{{item}}</li>
+        </ul>
+        <div class="ctrl">
+          <input type="text" id="msg" v-model="message" />
+          <button type="button" id="send" @click="send()">按钮</button>
+        </div>
       </div>
     </div>
     <!-- 输入框 -->
@@ -26,6 +32,8 @@
           message: "",
           lists: [],
           ws: {},
+          name: "",
+          isShow: true,
         },
         mounted() {
           this.ws = new WebSocket("ws://127.0.0.1:8880");
@@ -35,11 +43,29 @@
           this.ws.onerror = this.onError;
         },
         methods: {
+          enter: function () {
+            if (this.name.trim() === "") {
+              alert("用户名不能为空");
+              return;
+            }
+            this.isShow = false;
+            this.ws.send(
+              JSON.stringify({
+                event: "enter",
+                message: this.name,
+              })
+            );
+          },
           onOpen: function () {
             console.log("open:" + this.ws.readyState);
           },
           onMessage: function (event) {
-            this.lists.push(event.data);
+            var obj = JSON.parse(event.data);
+            if (obj.event === "enter") {
+              this.lists.push("欢迎：" + obj.message + "加入聊天室");
+            } else {
+              this.lists.push(obj.message);
+            }
           },
           onClose: function () {
             console.log("close:", this.ws.readyState);
@@ -50,38 +76,16 @@
             console.log("websocket连接失败");
           },
           send: function () {
-            this.ws.send(this.message);
+            this.ws.send(
+              JSON.stringify({
+                event: "message",
+                message: this.message,
+              })
+            );
             this.message = "";
           },
         },
       });
-      //   var ws = new WebSocket("ws://127.0.0.1:8880");
-      //   ws.onopen = function () {
-      //     console.log("open:" + ws.readyState);
-      //   };
-      //   ws.onmessage = function (event) {
-      //     console.log(event.data);
-      //   };
-      //   // 当连接主动断开的时候触发close事件
-      //   ws.onclose = function () {
-      //     console.log("close:" + ws.readyState);
-      //     console.log("已关闭ws");
-      //   };
-      //   // 当连接失败时，触发error事件
-      //   ws.onerror = function () {
-      //     console.log("error:" + ws.readyState);
-      //     console.log("websocket连接失败");
-      //   };
-      // 发送消息
-      //   document.getElementById("send").addEventListener("click", function () {
-      //     var inputValue = document.getElementById("msg").value;
-      //     ws.send(inputValue);
-      //     document.getElementById("msg").value = "";
-      //   });
-      //   // 关闭链接
-      //   document.getElementById("close").addEventListener("click", function () {
-      //     ws.close();
-      //   });
     </script>
   </body>
 </html>
