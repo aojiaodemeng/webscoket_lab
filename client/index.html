@@ -10,7 +10,8 @@
   <body>
     <div id="app">
       <div v-if="isShow">
-        <input type="text" v-model="name" />
+        <p>昵称：<input type="text" v-model="name" /></p>
+        <p>房间号：<input type="text" v-model="roomId" /></p>
         <button type="button" @click="enter()">进入聊天室</button>
       </div>
       <div v-else>
@@ -36,6 +37,7 @@
           name: "",
           isShow: true,
           num: 0,
+          roomId: "",
         },
         mounted() {
           this.ws = new WebSocket("ws://127.0.0.1:8880");
@@ -55,6 +57,7 @@
               JSON.stringify({
                 event: "enter",
                 message: this.name,
+                roomId: this.roomId,
               })
             );
           },
