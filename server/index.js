@@ -4,11 +4,16 @@ const WebSocket = require("ws");
 const wss = new WebSocket.Server({ noServer: true });
 const server = http.createServer();
 const jwt = require("jsonwebtoken");
+
+const TIME_INTERVAL = 1000;
+
 let group = {};
 
 // 多聊天室的功能
 // roomId -> 对应相同的roomId进行广播消息
 wss.on("connection", function connection(ws) {
+  // 初始的心跳连接状态
+  ws.isAlive = true;
   ws.on("message", function (message) {
     console.log("received: %s", message);
     const msgObj = JSON.parse(message);
@@ -24,9 +29,15 @@ wss.on("connection", function connection(ws) {
 
     // 鉴权
     if (msgObj.event === "auth") {
-      jwt.verify(msgObj.message, "123456781", (err, decode) => {
+      jwt.verify(msgObj.message, "12345678", (err, decode) => {
         if (err) {
           console.log("auth error");
+          ws.send(
+            JSON.stringify({
+              event: "noauth",
+              message: "please auth again",
+            })
+          );
           return;
         } else {
           // 鉴权通过
@@ -35,18 +46,19 @@ wss.on("connection", function connection(ws) {
           return;
         }
       });
+      return;
     }
 
     // 拦截非鉴权的请求
     if (!ws.isAuth) {
-      ws.send(
-        JSON.stringify({
-          event: "noauth",
-          message: "please auth again",
-        })
-      );
       return;
     }
+    // 心跳检测
+    if (msgObj.event === "heartbeat" && msgObj.message === "pong") {
+      ws.isAlive = true;
+      return;
+    }
+
     // ws.send(message);
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
@@ -91,3 +103,22 @@ server.on("upgrade", function upgrade(request, socket, head) {
 server.listen(8880, function () {
   console.log("Listening on http://localhost:8880");
 });
+
+setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (!ws.isAlive) {
+      group[ws.roomId]--;
+      return ws.terminate();
+    }
+    // 主动发送心跳检测请求
+    // 当客户端返回了消息之后，主动设置flag为在线
+    ws.isAlive = false;
+    ws.send(
+      JSON.stringify({
+        event: "heartbeat",
+        message: "ping",
+        num: group[ws.roomId],
+      })
+    );
+  });
+}, TIME_INTERVAL);

@@ -39,30 +39,24 @@
           num: 0,
           roomId: "",
         },
-        mounted() {
-          this.ws = new WebSocket("ws://127.0.0.1:8880");
-          this.ws.onopen = this.onOpen;
-          this.ws.onmessage = this.onMessage;
-          this.ws.onclose = this.onClose;
-          this.ws.onerror = this.onError;
-        },
+        mounted() {},
         methods: {
+          init() {
+            this.ws = new WebSocket("ws://127.0.0.1:8880");
+            this.ws.onopen = this.onOpen;
+            this.ws.onmessage = this.onMessage;
+            this.ws.onclose = this.onClose;
+            this.ws.onerror = this.onError;
+          },
           enter: function () {
             if (this.name.trim() === "") {
               alert("用户名不能为空");
               return;
             }
+            this.init();
             this.isShow = false;
-            this.ws.send(
-              JSON.stringify({
-                event: "enter",
-                message: this.name,
-                roomId: this.roomId,
-              })
-            );
           },
           onOpen: function () {
-            console.log("open:" + this.ws.readyState);
             // 发起鉴权请求
             this.ws.send(
               JSON.stringify({
@@ -71,26 +65,44 @@
                   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFvamlhb2RlbWVuZyIsImlhdCI6MTUxNjIzOTAyMn0.4JYeQlhXgEjzL5M5Mz4tBbOryZdCns5CkPvpLW4tPDQ",
               })
             );
+            // 发送房间号的信息
+            this.ws.send(
+              JSON.stringify({
+                event: "enter",
+                message: this.name,
+                roomId: this.roomId,
+              })
+            );
           },
           onMessage: function (event) {
             // 当用户未进入聊天室，则不接收消息
             if (this.isShow) return;
             var obj = JSON.parse(event.data);
-
-            if (obj.event === "noauth") {
-              // 鉴权失败
-              // 路由跳转到 /login，重新获取token
-            }
-            console.log(obj);
-            if (obj.event === "enter") {
-              this.lists.push("欢迎：" + obj.message + "加入聊天室");
-            } else if (obj.event === "out") {
-              this.lists.push(obj.name + "已退出聊天室");
-            } else {
-              // this.lists.push(obj.message);
-              if (obj.name !== this.name) {
-                this.lists.push(obj.name + ":" + obj.message);
-              }
+            switch (obj.event) {
+              case "noauth":
+                // 鉴权失败
+                // 路由跳转到 /login，重新获取token
+                break;
+              case "enter":
+                // 当有一个新的用户进入聊天室
+                this.lists.push("欢迎：" + obj.message + "加入聊天室");
+                break;
+              case "out":
+                this.lists.push(obj.name + "已退出聊天室");
+                break;
+              case "heartbeat":
+                this.ws.send(
+                  JSON.stringify({
+                    event: "heartbeat",
+                    message: "pong",
+                  })
+                );
+                break;
+              default:
+                if (obj.name !== this.name) {
+                  // 接收正常的聊天
+                  this.lists.push(obj.name + ":" + obj.message);
+                }
             }
             this.num = obj.num;
           },
