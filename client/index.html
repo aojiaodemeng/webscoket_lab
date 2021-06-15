@@ -63,11 +63,24 @@
           },
           onOpen: function () {
             console.log("open:" + this.ws.readyState);
+            // 发起鉴权请求
+            this.ws.send(
+              JSON.stringify({
+                event: "auth",
+                message:
+                  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFvamlhb2RlbWVuZyIsImlhdCI6MTUxNjIzOTAyMn0.4JYeQlhXgEjzL5M5Mz4tBbOryZdCns5CkPvpLW4tPDQ",
+              })
+            );
           },
           onMessage: function (event) {
             // 当用户未进入聊天室，则不接收消息
             if (this.isShow) return;
             var obj = JSON.parse(event.data);
+
+            if (obj.event === "noauth") {
+              // 鉴权失败
+              // 路由跳转到 /login，重新获取token
+            }
             console.log(obj);
             if (obj.event === "enter") {
               this.lists.push("欢迎：" + obj.message + "加入聊天室");
