@@ -38,6 +38,7 @@
           isShow: true,
           num: 0,
           roomId: "",
+          handle: {},
         },
         mounted() {},
         methods: {
@@ -91,6 +92,7 @@
                 this.lists.push(obj.name + "已退出聊天室");
                 break;
               case "heartbeat":
+                this.checkServer(); // TIME_INTERVAL + delay
                 this.ws.send(
                   JSON.stringify({
                     event: "heartbeat",
@@ -109,10 +111,16 @@
           onClose: function () {
             console.log("close:", this.ws.readyState);
             console.log("已关闭websocket");
+            this.ws.close();
           },
           onError: function () {
             console.log("error:" + this.ws.readyState);
             console.log("websocket连接失败");
+            // 连接失败之后，1s进行断线重连
+            var _this = this;
+            setTimeout(function () {
+              _this.init();
+            }, 1000);
           },
           send: function () {
             this.lists.push(this.name + ":" + this.message);
@@ -123,6 +131,15 @@
               })
             );
             this.message = "";
+          },
+          checkServer: function () {
+            // 注意作用域的问题
+            var _this = this;
+            clearTimeout(this.handle);
+            this.handle = setTimeout(function () {
+              _this.onClose();
+              _this.init();
+            }, 1000 + 500);
           },
         },
       });

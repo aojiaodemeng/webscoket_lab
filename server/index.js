@@ -106,8 +106,9 @@ server.listen(8880, function () {
 
 setInterval(() => {
   wss.clients.forEach((ws) => {
-    if (!ws.isAlive) {
+    if (!ws.isAlive && ws.roomId) {
       group[ws.roomId]--;
+      delete ws["roomId"];
       return ws.terminate();
     }
     // 主动发送心跳检测请求
